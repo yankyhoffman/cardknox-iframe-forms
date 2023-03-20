@@ -1,0 +1,19 @@
+x-envs:
+  x-django-env: &django-env
+    DEBUG: 1
+    SECRET_KEY: ${SECRET_KEY:-SECRET_KEY}
+    CK_TRANSACTION_KEY: ${CK_TRANSACTION_KEY}
+    CK_IFIELDS_KEY: ${CK_IFIELDS_KEY}
+
+version: "3.9"
+
+services:
+  webapp:
+    build: .
+    user: "${UID:-1000}:${GID:-1000}"
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *django-env
+    volumes:
+      - ./src:/app

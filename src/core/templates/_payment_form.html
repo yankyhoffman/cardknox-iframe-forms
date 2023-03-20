@@ -1,0 +1,193 @@
+{% load ckifields %}
+
+<script src="https://cdn.cardknox.com/ifields/{% ifields_version %}/ifields.min.js"></script>
+
+<form id="payment-form" method="post">
+  {% csrf_token %}
+
+  <h2 class="subtitle">IFields</h2>
+
+  <div class="ifields">
+    <label class="label">
+      Card #
+      <span id="card-type" class="help is-capitalized is-pulled-right"></span>
+    </label>
+    <iframe data-ifields-id="card-number" data-ifields-placeholder="Card Number"
+            src="https://cdn.cardknox.com/ifields/{% ifields_version %}/ifield.htm"></iframe>
+
+    <label class="label">CVV</label>
+    <iframe data-ifields-id="cvv" data-ifields-placeholder="CVV"
+            src="https://cdn.cardknox.com/ifields/{% ifields_version %}/ifield.htm"></iframe>
+  </div>
+
+  <label class="label">SUTs</label>
+  <div class="field is-grouped">
+    <input id="card_sut" name="card_sut" data-ifields-id="card-number-token"
+           class="input" placeholder="Card # (SUT)">
+
+    <input id="cvv_sut" name="cvv_sut" data-ifields-id="cvv-token"
+           class="input" placeholder="CVV (SUT)">
+  </div>
+
+  <!--And a field for all errors from the iFields-->
+  <label id="transaction-status"></label>
+  <label data-ifields-id="card-data-error" class="has-text-danger"></label>
+
+  <hr>
+
+  <h3 class="subtitle">Traditional fields</h3>
+
+  <label class="label">Expiration</label>
+  <div class="field is-grouped">
+    <div class="select">
+      <select>
+        <option>Month</option>
+        <option>01</option>
+        <option>02</option>
+        <option>03</option>
+        <option>04</option>
+        <option>05</option>
+        <option>06</option>
+        <option>07</option>
+        <option>08</option>
+        <option>09</option>
+        <option>10</option>
+        <option>11</option>
+        <option>12</option>
+      </select>
+    </div>
+
+    <div class="select">
+      <select>
+        <option>Year</option>
+        <option>2023</option>
+        <option>2024</option>
+        <option>2025</option>
+        <option>2026</option>
+        <option>2027</option>
+        <option>2028</option>
+        <option>2029</option>
+        <option>2030</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="zip" class="label">Zip code</label>
+    <input type="text" id="zip" name="zip" class="input">
+  </div>
+
+  <div class="field">
+    <label for="name" class="label">Name</label>
+    <input type="text" id="name" name="name" class="input">
+  </div>
+
+  <div class="field">
+    <label for="amount" class="label">Amount</label>
+    <input type="text" id="amount" name="amount" class="input" inputmode="numeric" pattern="\d*">
+  </div>
+
+  <div class="field">
+    <label for="details" class="label">Details</label>
+    <input type="text" id="details" name="details" class="input">
+  </div>
+
+  <input id="submit-btn" type="submit" value="Submit" class="button is-primary">
+</form>
+
+<script>
+  setAccount('{% ifields_key %}', 'yh-ck-int', '0.1.0');
+
+  let commonStyle = {
+    '-webkit-appearance': 'none',
+    '-webkit-font-smoothing': 'antialiased',
+    'align-items': 'center',
+    'background-color': '#fff',
+    'border': '1px solid transparent',
+    'border-radius': '4px',
+    'box-shadow': 'inset 0 .0625em .125em rgba(10,10,10,.05))',
+    'box-sizing': 'inherit',
+    'color': '#363636',
+    'display': 'inline-flex',
+    'font-family': 'BlinkMacSystemFont,-apple-system,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Helvetica,Arial,sans-serif',
+    'font-size': '1rem',
+    'height': '2.5em',
+    'justify-content': 'flex-start',
+    'line-height': '1.5',
+    'margin': '0',
+    'max-width': '95%',
+    'padding-bottom': 'calc(.5em - 1px)',
+    'padding-left': 'calc(.75em - 1px)',
+    'padding-right': 'calc(.75em - 1px)',
+    'padding-top': 'calc(.5em - 1px)',
+    'position': 'relative',
+    'text-size-adjust': '100%',
+    'vertical-align': 'top',
+    'width': '90%',
+  }
+
+  const defaultStyle = {
+    ...commonStyle,
+    'border-color': '#dbdbdb',
+  };
+
+  const validStyle = {
+    ...commonStyle,
+    'border-color': '#48c78e',
+  };
+
+  const invalidStyle = {
+    ...commonStyle,
+    'border-color': '#f14668',
+  };
+
+  setIfieldStyle('card-number', defaultStyle);
+  setIfieldStyle('cvv', defaultStyle);
+
+  enableAutoFormatting();
+
+  const cardType = document.getElementById('card-type');
+
+  addIfieldCallback('input', function (data) {
+    if (data.ifieldValueChanged) {
+      setIfieldStyle('card-number', data.cardNumberFormattedLength <= 0 ? defaultStyle : data.cardNumberIsValid ? validStyle : invalidStyle);
+
+      if (data.cardNumberIsValid) {
+        cardType.innerHTML = data.issuer === 'unknown' ? '' : `(${data.issuer})`;
+      }
+
+      if (data.lastIfieldChanged === 'cvv') {
+        setIfieldStyle('cvv', data.issuer === 'unknown' || data.cvvLength <= 0 ? defaultStyle : data.cvvIsValid ? validStyle : invalidStyle);
+      } else if (data.lastIfieldChanged === 'card-number') {
+        if (data.issuer === 'unknown' || data.cvvLength <= 0) {
+          setIfieldStyle('cvv', defaultStyle);
+        } else if (data.issuer === 'amex') {
+          setIfieldStyle('cvv', data.cvvLength === 4 ? validStyle : invalidStyle);
+        } else {
+          setIfieldStyle('cvv', data.cvvLength === 3 ? validStyle : invalidStyle);
+        }
+      }
+    }
+  });
+
+  document.getElementById('payment-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    const submitBtn = document.getElementById('submit-btn');
+
+    submitBtn.disabled = true;
+
+    getTokens(
+        function () {
+          document.getElementById('payment-form').submit();
+        },
+        function () {
+          document.getElementById('card_sut').innerHTML = '';
+          document.getElementById('cvv_sut').innerHTML = '';
+        },
+        5_000,
+    );
+
+    submitBtn.disabled = false;
+  });
+</script>
