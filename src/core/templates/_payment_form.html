@@ -146,9 +146,14 @@
 
   enableAutoFormatting();
 
+  let isValid = {card: false, cvv: false};
+
   const cardType = document.getElementById('card-type');
 
   addIfieldCallback('input', function (data) {
+    isValid.card = data.cardNumberIsValid;
+    isValid.cvv = data.cvvIsValid;
+
     if (data.ifieldValueChanged) {
       setIfieldStyle('card-number', data.cardNumberFormattedLength <= 0 ? defaultStyle : data.cardNumberIsValid ? validStyle : invalidStyle);
 
@@ -179,7 +184,9 @@
 
     getTokens(
         function () {
-          document.getElementById('payment-form').submit();
+          if (isValid.card && isValid.cvv) {
+            document.getElementById('payment-form').submit();
+          }
         },
         function () {
           document.getElementById('card_sut').innerHTML = '';
